@@ -45,6 +45,7 @@ class Board{
         ]
         this.red_left = 12
         this.black_left = 12
+        this.turns = 0
         let rowLen = 8
         let colLen = 8
         let i = 0
@@ -103,10 +104,26 @@ class Board{
         }
         this.render()
     }
+    completeTurn(){
+        this.turns = this.turns + 1
+        this.displayPrompt()
+    }
+    displayPrompt(){
+        let scoreBoard = document.getElementById("Whose_Turn")
+        let teamUp = ""
+        if (this.turns % 2 == 0){
+            teamUp = "Red"
+        }
+        else{
+            teamUp = "Black"
+        }
+        scoreBoard.innerHTML = `<h3>${teamUp}'s Turn</h3>
+                                <p>Red pieces left: ${this.red_left}</p>
+                                <p>Black pieces left: ${this.black_left}</p>`
+    }
 }
 
 
-let turns = 0
 let state = { 
     current_piece: null,
     possibleDelete: null,
@@ -146,13 +163,13 @@ function populate(spaces){
                         return
                     }
                     state.current_piece = selected.getAttribute('id')
-                    if (turns % 2 == 0 && checker.getAttribute('class').includes('red')){
+                    if (board.turns % 2 == 0 && checker.getAttribute('class').includes('red')){
                         resetBoardColors()
                         handleMove(selected.getAttribute('id'))
                         // turns = turns + 1
                         // prompt.textContent = `Black Team's Move`
                     }
-                    else if (turns % 2 == 1 && checker.getAttribute('class').includes('black')){
+                    else if (board.turns % 2 == 1 && checker.getAttribute('class').includes('black')){
                         resetBoardColors()
                         handleMove(selected.getAttribute('id'))
                         // turns = turns + 1
@@ -175,6 +192,7 @@ function populate(spaces){
 function revealMoves(json){
     let allSpaces = document.querySelectorAll(".square")
     json.forEach((target) => {
+        console.log(target)
         potentialElim = target.split(": ")[1]
         target = target.split("-")[0]
         if (potentialElim){
@@ -184,6 +202,7 @@ function revealMoves(json){
         allSpaces.forEach((square) => {
             if (target == square.getAttribute('id')){
                 square.setAttribute("style", "background-color: green")
+            //  THIS IS RESPONSIBLE FOR CONFIRMING A PLAYERS MOVE. ONLY GREEN SQUARES CAN BE MOVED TO
                 square.addEventListener("click", function confirmMove(e){
                     if (e.toElement.getAttribute('style').includes('green')){
                         let fetchTarget = (domain + `/pieces/${state.current_piece}/move/${e.toElement.getAttribute('id')}`)
@@ -191,6 +210,7 @@ function revealMoves(json){
                             .then(resp => resp.json())
                             .then(json => {
                                 board.changeCheckersGrid(json.spaces)
+                        //  THE HUGE CHUNK OF CODE BELOW IS RESPONSIBLE FOR DETERMINING WHETHER OR NOT A JUMP HAS OCCUERED
                                 if (state.possibleDelete){
                                     let recentlyMoved = document.getElementById(state.current_piece)
                                     if (recentlyMoved.dataset.pos == state.deleteCombo){
@@ -213,21 +233,19 @@ function revealMoves(json){
                                         }
                                     }
                                 }
+                        //  ------------------------------------------------------------   
+                            })
+                            .then( () => {
                                 resetBoardColors()
-                                turns = turns + 1
-                                let msg
-                                if (turns % 2 == 0){
-                                    msg = "Red"
-                                }
-                                else{
-                                    msg = "Black"
-                                }
-                                prompt.textContent = `${msg} Team's Move`
+                                console.log("Colors reset")
+                                board.completeTurn()
+                                console.log("Turns reset")
                                 clearState()
                             })
                     }
                 })
             }
+            //-------------------------------------------------------------------------------------------------------------------
         })
     })
 }
